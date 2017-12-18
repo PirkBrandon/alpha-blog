@@ -360,7 +360,7 @@ class InvoiceService
     invoice = Invoice.arel_table
 
     #SELECT
-    query = invoice.project('id, register_id, user_id, number, commited_at, gross_total, manual_receipt_number, test_receipt, cancels_invoice_id, payed, payment_method, company_customer_id, net_total, gross_amount_tax_normal, gross_amount_tax_reduced_1, gross_amount_tax_reduced_2, gross_amount_tax_zero, gross_amount_tax_special, company_id, kind')
+    query = invoice.project('id, register_id, user_id, number, commited_at, gross_total, manual_receipt_number, test_receipt, cancels_invoice_id, cancellation_reason, payment_method, company_customer_id, net_total, gross_amount_tax_normal, gross_amount_tax_reduced_1, gross_amount_tax_reduced_2, gross_amount_tax_zero, gross_amount_tax_special, company_id, kind')
 
     #Relation
     query = query.where(invoice[:company_id].eq(company_id))
