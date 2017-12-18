@@ -259,7 +259,7 @@ class InvoiceService
 
   # @param [[Invoice]] invoices
   # @param [Bool] excel
-  def export_as_csv(invoices, excel = false, csvfull = false)
+  def export_as_csv(invoices, excel = false)
     bom     = ''
     col_sep = ''
 
@@ -271,98 +271,6 @@ class InvoiceService
       col_sep << ","
     end
 
-    if !!csvfull
-      CSV.generate(:col_sep => col_sep) do |csv|
-        csv << [
-          bom +
-          'Belegnummer',
-          'Kassanummer',
-          'Kassabeschreibung',
-          'Benutzername',
-          'Datum',
-          'Zahlungsart',
-          'Netto Betrag',
-          'Brutto Betrag',
-          'Versteuert 20',
-          'Versteuert 10',
-          'Versteuert 13',
-          'Versteuert 19',
-          'Handbeleg',
-          'Art des Beleges',
-          'Testbeleg',
-
-          'Artikelname',
-          'Menge',
-          'Preis pro Stück',
-          'Kunde Firmenname',
-          'Kundennummer',
-          'Kunde Vorname',
-          'Kunde Nachname',
-          'Kunde Adresse',
-          'Kunde Stadt',
-          'Kunde PLZ',
-          'Kunde Land',
-          'Kunde Telefon',
-          'Kunde Fax',
-          'Kunde UID',
-          'Kunde Steuernummer',
-          'Anmerkung'
-        ]
-
-        invoices.each do |invoice|
-          test_receipt   = invoice.test_receipt?         ? 'Testbeleg' : ''
-          note           = invoice.line_items.first.name if invoice.payment_method == "ledger"
-          @invoice_line_items = InvoiceLineItem.includes(:invoice).where(:invoice_line_items => { invoice_id:  invoice.id} ).all
-
-          cc_first_name = (cc = invoice.customer) ? cc.first_name   : ''
-          cc_last_name  = (cc = invoice.customer) ? cc.last_name    : ''
-          cc_address    = (cc = invoice.customer) ? cc.address      : ''
-          cc_city       = (cc = invoice.customer) ? cc.city         : ''
-          cc_zip        = (cc = invoice.customer) ? cc.zip          : ''
-          cc_country    = (cc = invoice.customer) ? cc.country      : ''
-          cc_phone      = (cc = invoice.customer) ? cc.phone_number : ''
-          cc_fax        = (cc = invoice.customer) ? cc.fax_number   : ''
-          cc_uid        = (cc = invoice.customer) ? cc.uid          : ''
-          cc_tax_number = (cc = invoice.customer) ? cc.tax_number   : ''
-          cc_company_name = (cc = invoice.customer) ? cc.company_name   : ''
-          cc_customer_number = (cc = invoice.customer) ? cc.customer_number   : ''
-
-          csv << [
-            invoice.number,
-            invoice.register.number_with_prefix,
-            invoice.register.description,
-            invoice.user.username,
-            I18n.l(invoice.commited_at, format: :short_without_time),
-            format_payment_method(invoice.payment_method),
-            format_currency(invoice.net_total),
-            format_currency(invoice.gross_total),
-            format_currency(invoice.gross_amount_tax_normal),
-            format_currency(invoice.gross_amount_tax_reduced_1),
-            format_currency(invoice.gross_amount_tax_reduced_2),
-            format_currency(invoice.gross_amount_tax_special),
-            invoice.manual_receipt_number,
-            invoice.kind,
-            test_receipt,
-            @invoice_line_items.map{ |line_items| line_items.name}.to_s.gsub!("[","").gsub!("]",""),
-            @invoice_line_items.map{ |line_items| format_currency(line_items.quantity)}.to_s.gsub!("[","").gsub!("]",""),
-            @invoice_line_items.map{ |line_items| format_currency(line_items.gross_amount_per_item)}.to_s.gsub!("[","").gsub!("]",""),
-            cc_company_name,
-            cc_customer_number,
-            cc_first_name,
-            cc_last_name,
-            cc_address,
-            cc_city,
-            cc_zip,
-            cc_country,
-            cc_phone,
-            cc_fax,
-            cc_uid,
-            cc_tax_number,
-            note
-          ]
-        end
-      end
-    else
     CSV.generate(:col_sep => col_sep) do |csv|
       csv << [
         bom +
@@ -395,7 +303,7 @@ class InvoiceService
 
 
       invoices.each do |invoice|
-        test_receipt   = invoice.test_receipt?         ? 'Testbeleg' : ''
+        test_receipt   = invoice.test_receipt?         ? '1' : '0'
         note           = invoice.line_items.first.name if invoice.payment_method == "ledger"
 
         cc_first_name = (cc = invoice.customer) ? cc.first_name   : ''
@@ -439,7 +347,7 @@ class InvoiceService
       end
     end
   end
-end
+
   def filter(company_id, first_invoice_date, params, request_type: nil)
 
     gross_total_min = params['gross-total-min'].presence
@@ -452,7 +360,7 @@ end
     invoice = Invoice.arel_table
 
     #SELECT
-    query = invoice.project('id, register_id, user_id, number, commited_at, gross_total, manual_receipt_number, test_receipt, cancels_invoice_id, payment_method, company_customer_id, net_total, gross_amount_tax_normal, gross_amount_tax_reduced_1, gross_amount_tax_reduced_2, gross_amount_tax_zero, gross_amount_tax_special, company_id, kind')
+    query = invoice.project('id, register_id, user_id, number, commited_at, gross_total, manual_receipt_number, test_receipt, cancels_invoice_id, cancellation_reason, payment_method, company_customer_id, net_total, gross_amount_tax_normal, gross_amount_tax_reduced_1, gross_amount_tax_reduced_2, gross_amount_tax_zero, gross_amount_tax_special, company_id, kind')
 
     #Relation
     query = query.where(invoice[:company_id].eq(company_id))
